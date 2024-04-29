@@ -37,7 +37,7 @@ if (isset($_GET['delID'])) {
 	
             $_SESSION["deleteSuccess"] = "Item deleted successfully.";
             $unsuccessful = 0;
-            header("Location: Index.php");
+            header("Location: index.php");
             exit;
         } else {
             $unsuccessful = 1;
@@ -46,11 +46,11 @@ if (isset($_GET['delID'])) {
 
     if ($unsuccessful === 1) {
         $_SESSION["error"] = 'The account in question cannot be removed.';
-        header("Location: Index.php");
+        header("Location: index.php");
         exit;
     }
 } else {
-	header("Location: Index.php");
+	header("Location: index.php");
 	exit;
 }
 

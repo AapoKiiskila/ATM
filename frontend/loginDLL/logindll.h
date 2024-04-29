@@ -23,6 +23,8 @@ public:
 
     void getAccountInformation();
 
+    void lockCard();
+
     void logout();
 
     void setCardNum(const QString &newCardNum);
@@ -54,6 +56,7 @@ private:
     QNetworkAccessManager *accountInfoManager;
     QNetworkAccessManager *getManager;
     QNetworkAccessManager *postManager;
+    QNetworkAccessManager *lockedManager;
     QNetworkReply *reply;
     QByteArray response_data;
 
@@ -71,6 +74,7 @@ private slots:
     void getWithdrawalsSlot(QNetworkReply *reply);
     void getNostotapahtumaSlot(QNetworkReply *reply);
     void getBalanceSlot(QNetworkReply *reply);
+    void lockCardSlot(QNetworkReply *reply);
 
 signals:
     void loginStatus(LoginStatus);

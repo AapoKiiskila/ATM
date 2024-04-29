@@ -9,6 +9,12 @@ const card={
   getById: function(id, callback) {
     return db.query('select * from card where idcard=?', [id], callback);
   },
+  getLockedInformation: function(id, callback) {
+    return db.query('SELECT * FROM card_locked WHERE idcard=? AND locked = 1', [id], callback);
+  },
+  setLocked: function(id, callback) {
+    return db.query('insert into card_locked (idcard, locked) values(?, 1)', [id], callback);
+  },
   getAccountDetails: function(id, callback) {
     return db.query('SELECT account.* FROM account JOIN card_has_account ON card_has_account.idaccount = account.idaccount JOIN card ON card_has_account.idcard = card.idcard WHERE card.idcard =?;', [id], callback);
   },

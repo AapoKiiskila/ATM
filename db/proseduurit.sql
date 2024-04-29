@@ -115,6 +115,6 @@ END IF;
 DELETE FROM customer_has_account WHERE idaccount = del_account;
 DELETE FROM withdrawal WHERE idaccount = del_account;
 DELETE FROM account WHERE idaccount = del_account;
-END/
+END//
 
 DELIMITER ;

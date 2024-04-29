@@ -42,6 +42,114 @@ void LoginDLL::login(QString cardId, QString cardPin)
     reply = loginManager->post(request,QJsonDocument(jsonObj).toJson());
 }
 
+void LoginDLL::getCardInformation()
+{
+    QString site_url = socket + "/card/" + cardNum;
+    QNetworkRequest request((site_url));
+    //WEBTOKEN ALKU
+    QByteArray myToken="Bearer " + webToken;
+    request.setRawHeader(QByteArray("Authorization"),(myToken));
+    //WEBTOKEN LOPPU
+
+    cardInfoManager = new QNetworkAccessManager(this);
+    connect(cardInfoManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(cardInfoSlot(QNetworkReply*)), Qt::SingleShotConnection);
+    reply = cardInfoManager->get(request);
+}
+
+void LoginDLL::getAccountInformation()
+{
+    qDebug() << "Got request for account information..";
+    QString site_url = socket + "/card/accountDetails/" + cardNum;
+    QNetworkRequest request((site_url));
+    //WEBTOKEN ALKU
+    QByteArray myToken = "Bearer " + webToken;
+    request.setRawHeader(QByteArray("Authorization"),(myToken));
+    //WEBTOKEN LOPPU
+    accountInfoManager = new QNetworkAccessManager(this);
+
+    connect(accountInfoManager, SIGNAL(finished (QNetworkReply*)), this, SLOT(accountInfoSlot(QNetworkReply*)), Qt::SingleShotConnection);
+    reply = accountInfoManager->get(request);
+}
+
+void LoginDLL::lockCard()
+{
+    QString site_url = socket + "/login/setLocked/" + cardNum;
+    QNetworkRequest request((site_url));
+
+    lockedManager = new QNetworkAccessManager(this);
+    connect(lockedManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(lockCardSlot(QNetworkReply*)), Qt::SingleShotConnection);
+    reply = lockedManager->get(request);
+}
+
+void LoginDLL::logout()
+{
+
+    setWebToken(NULL);
+    setAccountId(NULL);
+    setCardNum(NULL);
+    setUserId(NULL);
+    //Suljetaan ikkuna pääsovelluksessa
+}
+
+void LoginDLL::setCardNum(const QString &newCardNum)
+{
+    cardNum = newCardNum;
+    qDebug() << "Card number in logindll was set to: " << cardNum;
+}
+
+void LoginDLL::setWebToken(const QByteArray &newWebToken)
+{
+    webToken = newWebToken;
+}
+
+void LoginDLL::setUserId(const QString &newUserId)
+{
+    userId = newUserId;
+    qDebug()<<"User id " + userId + " was set in logindll";
+}
+
+void LoginDLL::setAccountId(const QString &newAccountId)
+{
+    accountId = newAccountId;
+    qDebug()<<"Account id: " + accountId + "set By DLL";
+}
+
+void LoginDLL::cardInfoSlot(QNetworkReply *reply)
+{
+    QByteArray responseData = reply->readAll();
+    qDebug() << "Card info: " + responseData;
+
+    QJsonObject card = QJsonDocument::fromJson(responseData).array().at(0).toObject();
+
+    setCardNum(card["idcard"].toString());
+    setUserId(QString::number(card["idcustomer"].toInt()));
+
+    reply->deleteLater();
+    cardInfoManager->deleteLater();
+    getAccountInformation();
+}
+
+void LoginDLL::accountInfoSlot(QNetworkReply *reply)
+{
+    response_data=reply->readAll();
+
+    qDebug() << "Account info: " << response_data;
+
+    QJsonDocument json_doc = QJsonDocument::fromJson(response_data);
+    QJsonArray json_array = json_doc.array();
+
+    qDebug() << "Account info length: " << json_array.size();
+
+    foreach (const QJsonValue &value, json_array) {
+        QJsonObject json_obj = value.toObject();
+        setAccountId(QString::number(json_obj["idaccount"].toInt()));
+    }
+
+    emit accountsInfo(json_array);
+    reply->deleteLater();
+    accountInfoManager->deleteLater();
+}
+
 //LOGIN SLOT
 void LoginDLL::loginSlot(QNetworkReply *reply)
 {
@@ -70,109 +178,6 @@ void LoginDLL::loginSlot(QNetworkReply *reply)
     reply->deleteLater();
     loginManager->deleteLater();
 }
-
-// GET CARD
-void LoginDLL::getCardInformation()
-{
-    QString site_url = socket + "/card/" + cardNum;
-    QNetworkRequest request((site_url));
-    //WEBTOKEN ALKU
-    QByteArray myToken="Bearer " + webToken;
-    request.setRawHeader(QByteArray("Authorization"),(myToken));
-    //WEBTOKEN LOPPU
-
-    cardInfoManager = new QNetworkAccessManager(this);
-    connect(cardInfoManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(cardInfoSlot(QNetworkReply*)), Qt::SingleShotConnection);
-    reply = cardInfoManager->get(request);
-}
-
-//GET CARD SLOT
-void LoginDLL::cardInfoSlot(QNetworkReply *reply)
-{
-    QByteArray responseData = reply->readAll();
-    qDebug() << "Card info: " + responseData;
-
-    QJsonObject card = QJsonDocument::fromJson(responseData).array().at(0).toObject();
-
-    setCardNum(card["idcard"].toString());
-    setUserId(QString::number(card["idcustomer"].toInt()));
-
-    reply->deleteLater();
-    cardInfoManager->deleteLater();
-    getAccountInformation();
-}
-
-//GET ACCOUNT
-void LoginDLL::getAccountInformation()
-{
-    qDebug() << "Got request for account information..";
-    QString site_url = socket + "/card/accountDetails/" + cardNum;
-    QNetworkRequest request((site_url));
-    //WEBTOKEN ALKU
-    QByteArray myToken = "Bearer " + webToken;
-    request.setRawHeader(QByteArray("Authorization"),(myToken));
-    //WEBTOKEN LOPPU
-    accountInfoManager = new QNetworkAccessManager(this);
-
-    connect(accountInfoManager, SIGNAL(finished (QNetworkReply*)), this, SLOT(accountInfoSlot(QNetworkReply*)), Qt::SingleShotConnection);
-    reply = accountInfoManager->get(request);
-}
-
-//GET ACCOUNT SLOT
-void LoginDLL::accountInfoSlot(QNetworkReply *reply)
-{
-    response_data=reply->readAll();
-
-    qDebug() << "Account info: " << response_data;
-
-    QJsonDocument json_doc = QJsonDocument::fromJson(response_data);
-    QJsonArray json_array = json_doc.array();
-
-    qDebug() << "Account info length: " << json_array.size();
-
-    foreach (const QJsonValue &value, json_array) {
-        QJsonObject json_obj = value.toObject();
-        setAccountId(QString::number(json_obj["idaccount"].toInt()));
-    }
-
-    emit accountsInfo(json_array);
-    reply->deleteLater();
-    accountInfoManager->deleteLater();
-}
-
-//LOGOUT
-void LoginDLL::logout()
-{
-
-    setWebToken(NULL);
-    setAccountId(NULL);
-    setCardNum(NULL);
-    setUserId(NULL);
-    //Suljetaan ikkuna pääsovelluksessa
-}
-
-
-//SETTERS
-void LoginDLL::setCardNum(const QString &newCardNum)
-{
-    cardNum = newCardNum;
-    qDebug() << "Card number in logindll was set to: " << cardNum;
-}
-void LoginDLL::setWebToken(const QByteArray &newWebToken)
-{
-    webToken = newWebToken;
-}
-void LoginDLL::setUserId(const QString &newUserId)
-{
-    userId = newUserId;
-    qDebug()<<"User id " + userId + " was set in logindll";
-}
-void LoginDLL::setAccountId(const QString &newAccountId)
-{
-    accountId = newAccountId;
-    qDebug()<<"Account id: " + accountId + "set By DLL";
-}
-
 
 //GET CUSTOMER
 void LoginDLL::getCustomerInfo()
@@ -344,4 +349,12 @@ void LoginDLL::getBalanceSlot(QNetworkReply *reply)
         balance
     );
     getWithdrawalsInfo();
+}
+
+void LoginDLL::lockCardSlot(QNetworkReply *reply)
+{
+    response_data=reply->readAll();
+    qDebug()<<response_data;
+    reply->deleteLater();
+    lockedManager->deleteLater();
 }

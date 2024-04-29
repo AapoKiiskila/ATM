@@ -19,18 +19,26 @@ router.post('/',
           }
           else{
             if (dbResult.length > 0) {
-              bcrypt.compare(pin,dbResult[0].pin, function(err,compareResult) {
-                if(compareResult) {
-                  console.log("success");
-                  const token = generateAccessToken({ card: idcard });
-                  response.send(token);
+              //Tarkistetaan, onko kortti lukittu
+              card.getLockedInformation(idcard, function(dbErr, dbRes) {
+                if(dbRes.length > 0) {
+                  console.log("card is locked");
+                  response.send(false);
+                } else {
+                  bcrypt.compare(pin,dbResult[0].pin, function(err,compareResult) {
+                    if(compareResult) {
+                      console.log("success");
+                      const token = generateAccessToken({ card: idcard });
+                      response.send(token);
+                    }
+                    else {
+                        console.log("wrong pin code");
+                        response.send(false);
+                    }			
+                  }
+                  );
                 }
-                else {
-                    console.log("wrong pin code");
-                    response.send(false);
-                }			
-              }
-              );
+              });
             }
             else{
               console.log("card does not exists");
@@ -46,6 +54,17 @@ router.post('/',
     }
   }
 );
+
+router.get('/setLocked/:id?',
+function(request, response) {
+  card.setLocked(request.params.id, function(err, dbResult) {
+    if (err) {
+      response.json(err);
+    } else {
+      response.json(dbResult);
+    }
+  })
+});
 
 function generateAccessToken(card) {
   dotenv.config();

@@ -286,6 +286,7 @@ void MainWindow::checkLoginStatus(LoginDLL::LoginStatus s)
 
             } else {
                 logout();
+                login->lockCard();
                 pinui->setAlert(false);
                 ui->viewer->setCurrentWidget(welcome);
 
